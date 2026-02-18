@@ -1,0 +1,38 @@
+# Hybrid RAG
+
+Sistema de Retrieval-Augmented Generation (RAG) hibrido que combina busca lexical (BM25) e busca semantica (vetorial) usando Reciprocal Rank Fusion (RRF).
+
+## Como funciona
+
+1. Documentos PDF da pasta `docs/` sao carregados e divididos em chunks.
+2. Dois retrievers sao criados:
+   - BM25 (busca por palavras-chave)
+   - Chroma (busca por similaridade semantica com embeddings)
+3. Os resultados sao combinados com pesos (40% BM25, 60% vetorial) via EnsembleRetriever.
+4. O contexto recuperado e enviado ao LLM (Llama 3.3 70B) para gerar a resposta.
+
+## Dependencias principais
+
+- langchain
+- langchain-openai
+- langchain-huggingface
+- langchain-chroma
+- langchain-community
+- sentence-transformers
+- python-dotenv
+
+## Configuracao
+
+1. Crie um arquivo `.env` com a variavel `OPENAI_API_KEY`.
+2. Coloque os PDFs na pasta `docs/`.
+3. Execute:
+
+```bash
+python app.py
+```
+
+## Estrutura
+
+- `app.py` — codigo principal do pipeline RAG hibrido
+- `docs/` — PDFs usados como base de conhecimento
+- `chroma_langchain_db/` — banco vetorial persistido (Chroma)
