@@ -30,7 +30,6 @@ Sistema de Retrieval-Augmented Generation (RAG) hibrido que combina busca lexica
 ```bash
 python app.py
 ```
-
 ## Estrutura
 
 - `app.py` — codigo principal do pipeline RAG hibrido
