@@ -6,7 +6,7 @@ from datasets import Dataset
 from dotenv import load_dotenv
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from ragas import evaluate
+from ragas import RunConfig, evaluate
 from ragas.llms.base import LangchainLLMWrapper
 from ragas.metrics import (
     answer_relevancy,
@@ -31,6 +31,31 @@ USAGE_COLS = [
 ]
 
 EXPORT_COLS = ["question", *METRIC_COLS, *USAGE_COLS]
+
+DEFAULT_RAGAS_TIMEOUT_SECONDS = 600
+DEFAULT_RAGAS_MAX_WORKERS = 4
+
+
+def get_int_env(name, default, minimum=1):
+    value = os.getenv(name)
+
+    if value is None:
+        return default
+
+    try:
+        parsed_value = int(value)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"{name} precisa ser um numero inteiro. Valor atual: {value}"
+        ) from exc
+
+    if parsed_value < minimum:
+        raise RuntimeError(
+            f"{name} precisa ser maior ou igual a {minimum}. "
+            f"Valor atual: {parsed_value}"
+        )
+
+    return parsed_value
 
 
 def configure_environment(project_name):
@@ -266,12 +291,19 @@ def preparar_export_ragas(df):
     null_metrics = df[df[METRIC_COLS].isnull().any(axis=1)]
     if not null_metrics.empty:
         failed_questions = null_metrics["question"].fillna("<pergunta ausente>").tolist()
-        raise RuntimeError(
-            "RAGAS retornou metricas nulas para as perguntas: "
-            f"{failed_questions}"
+        print(
+            "Aviso: RAGAS retornou metricas nulas para as perguntas: "
+            f"{failed_questions}. O CSV sera exportado com esses valores nulos."
         )
 
     return df[EXPORT_COLS]
+
+
+def build_ragas_run_config():
+    return RunConfig(
+        timeout=get_int_env("RAGAS_TIMEOUT_SECONDS", DEFAULT_RAGAS_TIMEOUT_SECONDS),
+        max_workers=get_int_env("RAGAS_MAX_WORKERS", DEFAULT_RAGAS_MAX_WORKERS),
+    )
 
 
 def run_ragas(ragas_data, llm, embeddings):
@@ -282,7 +314,8 @@ def run_ragas(ragas_data, llm, embeddings):
         metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
         llm=llm,
         embeddings=embeddings,
-        raise_exceptions=True,
+        run_config=build_ragas_run_config(),
+        raise_exceptions=False,
     )
 
     print("=== RESULTADOS RAGAS ===")

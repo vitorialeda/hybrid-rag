@@ -16,6 +16,7 @@ from rag_settings import (
     extract_response_text,
     finish_usage_tracker,
     get_chroma_settings,
+    get_int_env,
     run_ragas,
     salvar,
     start_usage_tracker,
@@ -28,6 +29,7 @@ PERSIST_DIR, CHROMA_COLLECTION_NAME = get_chroma_settings(
     "./chroma_hybrid_db_openai",
     "hybrid_collection_openai",
 )
+RETRIEVER_K = get_int_env("RETRIEVER_K", 3)
 
 test_queries = [
     # FÁCEIS
@@ -106,8 +108,8 @@ def build_hybrid_retriever():
             f"{vector_store._collection.count()} documentos. Pulando ingestão."
         )
 
-    vector_retriever = vector_store.as_retriever(search_kwargs={"k": 5})
-    bm25_retriever = BM25Retriever.from_documents(all_splits, k=5)
+    vector_retriever = vector_store.as_retriever(search_kwargs={"k": RETRIEVER_K})
+    bm25_retriever = BM25Retriever.from_documents(all_splits, k=RETRIEVER_K)
 
     hybrid_retriever = EnsembleRetriever(
         retrievers=[bm25_retriever, vector_retriever],
